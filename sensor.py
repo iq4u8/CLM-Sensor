@@ -1,18 +1,18 @@
 """
 ================================================================================
-🛡️ CLM Sensor v3.0 — Modular Privacy & Network Sentinel for Windows 10 & 11
+🛡️ CLM Sensor v3.0 — Modular Privacy, Network & Hardware Sentinel
 Developed by: Priyanshu Pandey (IQ4U8)
 
 Features:
-- Modular 3-Slot Customizable Floating HUD: Choose ANY 3 tools from:
-  [CAM, MIC, LOC, WIFI, LAN, VPN, BT, DNS]
-- Center Setup & Configuration Modal on boot or via Right-Click Menu.
-- Full Light & Dark Theme Support.
-- Direct Bluetooth & Bluetooth Hands-Free Mic Detection via WinMM & Registry.
-- Network Link Sentinel: Wi-Fi, Ethernet/LAN, and Active VPN Tunnels.
+- Center Studio Dashboard on launch: View all 8 tools and pick any 3.
+- Modular 3-Slot Desktop HUD Pill: Dynamically renders the 3 selected tools.
+- Bluetooth & Bluetooth Hands-Free Mic Detection via WinMM & Registry.
+- Network Link Sentinels: Wi-Fi, Ethernet/LAN, and Active VPN Tunnels.
 - DNS Leak & IP Route Inspector.
-- Zero-CPU & Battery Saver Engine: Throttles polling when laptop is on battery.
-- 100% Offline & Air-Gapped: Zero cloud dependencies, sub-18 MB RAM footprint.
+- Full Light & Dark Theme Support with clean high-contrast styling.
+- 100% Native Win32 APIs (SetupAPI, WinMM, IPHlpAPI, WinReg, Kernel32).
+- Zero CPU Overhead & Adaptive Battery Saver (Auto-throttles when on battery).
+- 100% Air-Gapped & Offline (Sub-18 MB RAM).
 ================================================================================
 """
 
@@ -47,7 +47,9 @@ setupapi = ctypes.windll.setupapi
 winmm = ctypes.windll.winmm
 iphlpapi = ctypes.windll.iphlpapi
 
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sensor_config.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(BASE_DIR, "sensor_config.json")
+ICON_PATH = os.path.join(BASE_DIR, "icon.ico")
 
 # Win32 Battery Status
 class SYSTEM_POWER_STATUS(ctypes.Structure):
@@ -231,12 +233,16 @@ class HardwareEngine:
         num_devs = winmm.waveInGetNumDevs()
         dev_names = []
         has_bt = False
+        bt_keywords = [
+            'bluetooth', 'hands-free', 'headset', 'airpods', 'buds', 'wireless',
+            'boat', 'rockerz', 'sony', 'jbl', 'noise', 'realme', 'boult', 'oneplus'
+        ]
         for i in range(num_devs):
             caps = WAVEINCAPSW()
             if winmm.waveInGetDevCapsW(i, ctypes.byref(caps), ctypes.sizeof(caps)) == 0:
                 name = caps.szPname
                 dev_names.append(name)
-                if any(t in name.lower() for t in ['bluetooth', 'hands-free', 'headset', 'airpods', 'buds', 'wireless']):
+                if any(t in name.lower() for t in bt_keywords):
                     has_bt = True
         return num_devs > 0, has_bt, dev_names
 
@@ -344,7 +350,6 @@ class HardwareEngine:
         except Exception:
             pass
 
-        # Secure known DNS providers
         secure_pools = ['1.1.1.1', '1.0.0.1', '8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '10.']
         if any(any(d.startswith(p) for p in secure_pools) for d in dns_servers):
             is_secure = True
@@ -448,7 +453,7 @@ THEMES = {
         "modal_bg": "#0b1220",
         "card_bg": "#131d31",
         "card_border": "#1e2d4a",
-        "card_active_border": "#38bdf8",
+        "card_active_border": "#10b981",
         "card_active_bg": "#1e293b"
     },
     "light": {
@@ -464,8 +469,8 @@ THEMES = {
         "modal_bg": "#f8fafc",
         "card_bg": "#ffffff",
         "card_border": "#e2e8f0",
-        "card_active_border": "#0284c7",
-        "card_active_bg": "#f0f9ff"
+        "card_active_border": "#059669",
+        "card_active_bg": "#ecfdf5"
     }
 }
 
@@ -486,7 +491,7 @@ class TooltipWindow:
         self.tip_window.wm_overrideredirect(True)
         self.tip_window.wm_attributes("-topmost", True)
         self.tip_window.wm_attributes("-toolwindow", True)
-        self.tip_window.geometry(f"+{x}+{y - 28}")
+        self.tip_window.geometry(f"+{x}+{y - 32}")
 
         bg = "#0f172a" if theme == "dark" else "#ffffff"
         fg = "#f8fafc" if theme == "dark" else "#0f172a"
@@ -494,7 +499,7 @@ class TooltipWindow:
 
         frame = tk.Frame(self.tip_window, bg=bg, highlightthickness=1, highlightbackground=border)
         frame.pack()
-        lbl = tk.Label(frame, text=text, font=("Segoe UI", 8, "bold"), fg=fg, bg=bg, padx=8, pady=3)
+        lbl = tk.Label(frame, text=text, font=("Segoe UI", 8, "bold"), fg=fg, bg=bg, padx=10, pady=4)
         lbl.pack()
 
     def hide(self):
@@ -507,220 +512,359 @@ class TooltipWindow:
 
 
 # ---------------------------------------------------------------------------
-# Center Studio Modal (Configure Any 3 Sensors & Theme)
+# Global Config Helper
 # ---------------------------------------------------------------------------
-class CenterStudioModal(tk.Toplevel):
-    def __init__(self, parent, current_config, on_save_callback):
-        super().__init__(parent)
-        self.parent = parent
-        self.config = current_config
-        self.on_save_callback = on_save_callback
+def load_config():
+    defaults = {
+        "selected_sensors": ["cam", "mic", "vpn"],
+        "theme": "dark",
+        "sound_alerts": True,
+        "always_on_top": True,
+        "battery_saver": True,
+        "first_run_completed": False
+    }
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+                if len(cfg.get("selected_sensors", [])) == 3:
+                    return cfg
+        except Exception:
+            pass
+    return defaults
 
-        self.title("🛡️ CLM Sensor — Sentinel Studio & Tool Selection")
-        self.wm_attributes("-topmost", True)
+
+def save_config(cfg):
+    try:
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2)
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Center Studio Window (Primary First Screen)
+# ---------------------------------------------------------------------------
+class CenterStudioWindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.config_data = load_config()
+
+        self.title("🛡️ CLM Sensor — Sentinel Studio")
         self.resizable(False, False)
 
-        # Center on primary monitor
-        w, h = 640, 520
+        # Apply icon if available
+        if os.path.exists(ICON_PATH):
+            try:
+                self.iconbitmap(ICON_PATH)
+            except Exception:
+                pass
+
+        # Dimensions & Centering
+        w, h = 680, 580
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
         x = (sw - w) // 2
         y = (sh - h) // 2
         self.geometry(f"{w}x{h}+{x}+{y}")
 
-        self.selected_tools = list(self.config.get("selected_sensors", ["cam", "mic", "vpn"]))
-        self.current_theme = self.config.get("theme", "dark")
-        self.battery_saver_var = tk.BooleanVar(value=self.config.get("battery_saver", True))
-        self.sound_alert_var = tk.BooleanVar(value=self.config.get("sound_alerts", True))
+        self.selected_tools = list(self.config_data.get("selected_sensors", ["cam", "mic", "vpn"]))
+        self.current_theme = self.config_data.get("theme", "dark")
+        self.battery_saver_var = tk.BooleanVar(value=self.config_data.get("battery_saver", True))
+        self.sound_alert_var = tk.BooleanVar(value=self.config_data.get("sound_alerts", True))
 
-        self.card_frames = {}
-        self.build_modal_ui()
+        self.card_widgets = {}
+        self.floating_pill = None
 
-    def build_modal_ui(self):
+        self.build_ui()
+
+        # Handle window close
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def build_ui(self):
+        for child in self.winfo_children():
+            child.destroy()
+        self.card_widgets.clear()
+
         th = THEMES[self.current_theme]
         self.configure(bg=th["modal_bg"])
 
-        # Header Title
-        hdr_frame = tk.Frame(self, bg=th["modal_bg"], pady=12)
-        hdr_frame.pack(fill="x", padx=24)
+        # Top Bar
+        top_bar = tk.Frame(self, bg=th["modal_bg"], pady=14, padx=24)
+        top_bar.pack(fill="x")
+
+        # Title & Subtitle Frame
+        title_frame = tk.Frame(top_bar, bg=th["modal_bg"])
+        title_frame.pack(side="left")
 
         title_lbl = tk.Label(
-            hdr_frame, text="🛡️ CLM Sensor — Sentinel Studio",
-            font=("Segoe UI", 16, "bold"),
-            fg=th["text_highlight"], bg=th["modal_bg"]
+            title_frame, text="🛡️ CLM Sensor — Sentinel Studio",
+            font=("Segoe UI", 16, "bold"), fg=th["text_highlight"], bg=th["modal_bg"]
         )
         title_lbl.pack(anchor="w")
 
-        sub_text = "Select EXACTLY 3 active sensors for your floating desktop HUD widget:"
-        sub_lbl = tk.Label(hdr_frame, text=sub_text, font=("Segoe UI", 9), fg=th["text"], bg=th["modal_bg"])
+        sub_lbl = tk.Label(
+            title_frame, text="Choose EXACTLY 3 active tools for your floating desktop widget:",
+            font=("Segoe UI", 9), fg=th["text"], bg=th["modal_bg"]
+        )
         sub_lbl.pack(anchor="w", pady=(2, 0))
 
-        # Counter Badge
-        self.counter_lbl = tk.Label(
-            hdr_frame, text=f"Selected: {len(self.selected_tools)} / 3 Tools",
-            font=("Segoe UI", 9, "bold"), fg="#38bdf8" if len(self.selected_tools) == 3 else "#ef4444",
-            bg=th["modal_bg"]
-        )
-        self.counter_lbl.pack(anchor="w", pady=(4, 0))
+        # Right-side Header Controls (Theme & Battery Badge)
+        hdr_right = tk.Frame(top_bar, bg=th["modal_bg"])
+        hdr_right.pack(side="right")
 
-        # 8 Tools Grid
-        grid_frame = tk.Frame(self, bg=th["modal_bg"])
-        grid_frame.pack(fill="both", expand=True, padx=20, pady=8)
+        # Battery Badge
+        is_ac, batt_pct = HardwareEngine.get_power_status()
+        batt_icon = "⚡" if is_ac else "🔋"
+        batt_text = f"{batt_icon} {batt_pct}% {'(AC)' if is_ac else '(Battery)'}"
+        batt_badge = tk.Label(
+            hdr_right, text=batt_text, font=("Segoe UI", 8, "bold"),
+            bg="#1e293b" if self.current_theme == "dark" else "#e2e8f0",
+            fg="#10b981" if is_ac else "#f59e0b", padx=8, pady=3
+        )
+        batt_badge.pack(side="right", padx=(8, 0))
+
+        # Theme Toggle Button
+        theme_btn_text = "☀️ Light Mode" if self.current_theme == "dark" else "🌙 Dark Mode"
+        theme_btn = tk.Button(
+            hdr_right, text=theme_btn_text, font=("Segoe UI", 8, "bold"),
+            bg="#1e293b" if self.current_theme == "dark" else "#e2e8f0",
+            fg=th["text_highlight"], bd=0, highlightthickness=0,
+            padx=10, pady=3, cursor="hand2", command=self.toggle_theme
+        )
+        theme_btn.pack(side="right")
+
+        # Counter Banner
+        cnt = len(self.selected_tools)
+        status_color = "#10b981" if cnt == 3 else "#ef4444"
+        status_msg = f"[ Selected: {cnt} / 3 Tools • Ready to Launch ]" if cnt == 3 else f"[ Selected: {cnt} / 3 Tools • Pick {3 - cnt} more ]"
+        
+        banner_frame = tk.Frame(self, bg=th["modal_bg"], padx=24)
+        banner_frame.pack(fill="x", pady=(0, 6))
+
+        self.counter_lbl = tk.Label(
+            banner_frame, text=status_msg, font=("Segoe UI", 9, "bold"),
+            fg=status_color, bg=th["modal_bg"]
+        )
+        self.counter_lbl.pack(anchor="w")
+
+        # 8 Tools Grid Container (4 columns x 2 rows)
+        grid_frame = tk.Frame(self, bg=th["modal_bg"], padx=20)
+        grid_frame.pack(fill="both", expand=True)
 
         tool_keys = list(TOOL_CATALOG.keys())
         for idx, key in enumerate(tool_keys):
             row = idx // 4
             col = idx % 4
-            self.create_tool_card(grid_frame, key, row, col, th)
+            self.create_card(grid_frame, key, row, col, th)
 
-        # Settings Bottom Bar
-        bottom_bar = tk.Frame(self, bg=th["modal_bg"], pady=12)
-        bottom_bar.pack(fill="x", padx=24)
+        # Bottom Controls Panel
+        bottom_frame = tk.Frame(self, bg=th["modal_bg"], pady=14, padx=24)
+        bottom_frame.pack(fill="x")
 
-        # Theme Selector Radio
-        theme_frame = tk.Frame(bottom_bar, bg=th["modal_bg"])
-        theme_frame.pack(side="left")
+        # Left Options (Checkboxes)
+        opts_frame = tk.Frame(bottom_frame, bg=th["modal_bg"])
+        opts_frame.pack(side="left")
 
-        theme_lbl = tk.Label(theme_frame, text="Theme:", font=("Segoe UI", 9, "bold"), fg=th["text_highlight"], bg=th["modal_bg"])
-        theme_lbl.pack(side="left", padx=(0, 8))
-
-        self.theme_var = tk.StringVar(value=self.current_theme)
-        r_dark = tk.Radiobutton(theme_frame, text="🌙 Dark", variable=self.theme_var, value="dark", command=self.on_theme_changed, bg=th["modal_bg"], fg=th["text"], selectcolor=th["modal_bg"])
-        r_dark.pack(side="left", padx=4)
-        r_light = tk.Radiobutton(theme_frame, text="☀️ Light", variable=self.theme_var, value="light", command=self.on_theme_changed, bg=th["modal_bg"], fg=th["text"], selectcolor=th["modal_bg"])
-        r_light.pack(side="left", padx=4)
-
-        # Battery & Sound Checkboxes
-        chk_frame = tk.Frame(bottom_bar, bg=th["modal_bg"])
-        chk_frame.pack(side="left", padx=16)
-
-        c_bat = tk.Checkbutton(chk_frame, text="⚡ Battery Saver", variable=self.battery_saver_var, bg=th["modal_bg"], fg=th["text"], selectcolor=th["modal_bg"])
-        c_bat.pack(side="left", padx=4)
-        c_snd = tk.Checkbutton(chk_frame, text="🔔 Sound Alert", variable=self.sound_alert_var, bg=th["modal_bg"], fg=th["text"], selectcolor=th["modal_bg"])
-        c_snd.pack(side="left", padx=4)
-
-        # Save Button
-        save_btn = tk.Button(
-            bottom_bar, text="💾 Save & Launch Widget",
-            font=("Segoe UI", 10, "bold"),
-            bg="#059669", fg="#ffffff", activebackground="#10b981", activeforeground="#ffffff",
-            relief="flat", padx=14, pady=6, cursor="hand2",
-            command=self.save_and_close
+        c_bat = tk.Checkbutton(
+            opts_frame, text="⚡ Battery Saver (Throttle on battery)",
+            variable=self.battery_saver_var, font=("Segoe UI", 8),
+            bg=th["modal_bg"], fg=th["text"], selectcolor=th["card_bg"],
+            activebackground=th["modal_bg"], activeforeground=th["text_highlight"]
         )
-        save_btn.pack(side="right")
+        c_bat.pack(anchor="w")
 
-    def create_tool_card(self, parent, key, row, col, th):
+        c_snd = tk.Checkbutton(
+            opts_frame, text="🔔 Sound Alert on active sensor tap",
+            variable=self.sound_alert_var, font=("Segoe UI", 8),
+            bg=th["modal_bg"], fg=th["text"], selectcolor=th["card_bg"],
+            activebackground=th["modal_bg"], activeforeground=th["text_highlight"]
+        )
+        c_snd.pack(anchor="w")
+
+        # Right Action Buttons
+        btn_frame = tk.Frame(bottom_frame, bg=th["modal_bg"])
+        btn_frame.pack(side="right")
+
+        # Reset button
+        reset_btn = tk.Button(
+            btn_frame, text="🔄 Reset Defaults", font=("Segoe UI", 9),
+            bg=th["card_bg"], fg=th["text"], bd=0, highlightthickness=1,
+            highlightbackground=th["card_border"], padx=10, pady=6, cursor="hand2",
+            command=self.reset_defaults
+        )
+        reset_btn.pack(side="left", padx=(0, 8))
+
+        # Launch Primary Button
+        self.launch_btn = tk.Button(
+            btn_frame, text="🚀 LAUNCH DESKTOP PILL", font=("Segoe UI", 9, "bold"),
+            bg="#059669" if cnt == 3 else "#334155", fg="#ffffff",
+            activebackground="#10b981", activeforeground="#ffffff",
+            bd=0, highlightthickness=0, padx=14, pady=6, cursor="hand2",
+            command=self.launch_desktop_pill
+        )
+        self.launch_btn.pack(side="left")
+
+    def create_card(self, parent, key, row, col, th):
         tool = TOOL_CATALOG[key]
-        is_selected = key in self.selected_tools
+        is_sel = key in self.selected_tools
 
-        card_bg = th["card_active_bg"] if is_selected else th["card_bg"]
-        card_border = th["card_active_border"] if is_selected else th["card_border"]
+        bg_col = th["card_active_bg"] if is_sel else th["card_bg"]
+        bd_col = th["card_active_border"] if is_sel else th["card_border"]
 
-        f = tk.Frame(
-            parent, bg=card_bg, highlightthickness=2, highlightbackground=card_border,
-            padx=8, pady=8, cursor="hand2", width=135, height=115
+        # Outer Frame
+        card = tk.Frame(
+            parent, bg=bg_col, highlightthickness=2, highlightbackground=bd_col,
+            padx=10, pady=8, cursor="hand2", width=145, height=130
         )
-        f.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
-        f.pack_propagate(False)
+        card.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
+        card.grid_propagate(False)
 
-        icon_lbl = tk.Label(f, text=tool["icon"], font=("Segoe UI", 18), bg=card_bg, fg=th["text_highlight"])
-        icon_lbl.pack(anchor="w")
+        # Header with Icon & Slot Badge
+        top_f = tk.Frame(card, bg=bg_col)
+        top_f.pack(fill="x")
 
-        code_lbl = tk.Label(f, text=tool["code"], font=("Segoe UI", 10, "bold"), bg=card_bg, fg=th["text_highlight"])
-        code_lbl.pack(anchor="w")
+        icon_lbl = tk.Label(top_f, text=tool["icon"], font=("Segoe UI", 16), bg=bg_col, fg=th["text_highlight"])
+        icon_lbl.pack(side="left")
 
-        desc_lbl = tk.Label(f, text=tool["desc"], font=("Segoe UI", 7), bg=card_bg, fg=th["text"], wraplength=120, justify="left")
-        desc_lbl.pack(anchor="w", pady=(2, 0))
+        slot_text = f"✓ SLOT {self.selected_tools.index(key) + 1}" if is_sel else "+ SELECT"
+        badge_fg = "#10b981" if is_sel else th["text"]
+        badge_bg = th["modal_bg"] if is_sel else th["card_bg"]
+        badge_lbl = tk.Label(
+            top_f, text=slot_text, font=("Segoe UI", 7, "bold"),
+            bg=badge_bg, fg=badge_fg, padx=4, pady=1
+        )
+        badge_lbl.pack(side="right")
 
-        # Store card widget references
-        self.card_frames[key] = f
+        # Code & Title
+        code_lbl = tk.Label(card, text=f"{tool['code']} • {tool['title']}", font=("Segoe UI", 8, "bold"), bg=bg_col, fg=th["text_highlight"], anchor="w")
+        code_lbl.pack(fill="x", pady=(4, 0))
 
-        # Bind click on all child elements
-        for widget in (f, icon_lbl, code_lbl, desc_lbl):
-            widget.bind("<Button-1>", lambda e, k=key: self.toggle_tool(k))
+        # Description
+        desc_lbl = tk.Label(card, text=tool["desc"], font=("Segoe UI", 7), bg=bg_col, fg=th["text"], wraplength=130, justify="left")
+        desc_lbl.pack(fill="x", pady=(2, 0))
 
-    def toggle_tool(self, key):
+        self.card_widgets[key] = {
+            "frame": card,
+            "badge": badge_lbl,
+            "all_elements": [card, top_f, icon_lbl, badge_lbl, code_lbl, desc_lbl]
+        }
+
+        # Bind Click on all child elements
+        for elem in self.card_widgets[key]["all_elements"]:
+            elem.bind("<Button-1>", lambda e, k=key: self.on_card_clicked(k))
+
+    def on_card_clicked(self, key):
         if key in self.selected_tools:
             if len(self.selected_tools) <= 1:
-                messagebox.showwarning("Notice", "You must keep at least 1 sensor selected.")
+                messagebox.showinfo("Notice", "You must keep at least 1 sensor selected.")
                 return
             self.selected_tools.remove(key)
         else:
             if len(self.selected_tools) >= 3:
-                # Replace the first chosen tool
-                removed = self.selected_tools.pop(0)
+                # Replace the oldest selection
+                self.selected_tools.pop(0)
                 self.selected_tools.append(key)
             else:
                 self.selected_tools.append(key)
 
-        # Refresh cards appearance
+        self.refresh_cards_ui()
+
+    def refresh_cards_ui(self):
         th = THEMES[self.current_theme]
-        for k, frame in self.card_frames.items():
-            sel = k in self.selected_tools
-            bg = th["card_active_bg"] if sel else th["card_bg"]
-            border = th["card_active_border"] if sel else th["card_border"]
-            frame.configure(bg=bg, highlightbackground=border)
-            for child in frame.winfo_children():
-                child.configure(bg=bg)
+        cnt = len(self.selected_tools)
 
-        # Update counter
-        count = len(self.selected_tools)
-        color = "#10b981" if count == 3 else "#ef4444"
-        self.counter_lbl.configure(text=f"Selected: {count} / 3 Tools", fg=color)
+        # Update each card
+        for k, widgets in self.card_widgets.items():
+            is_sel = k in self.selected_tools
+            bg_col = th["card_active_bg"] if is_sel else th["card_bg"]
+            bd_col = th["card_active_border"] if is_sel else th["card_border"]
 
-    def on_theme_changed(self):
-        self.current_theme = self.theme_var.get()
-        # Re-render modal in new theme
-        for child in self.winfo_children():
-            child.destroy()
-        self.card_frames.clear()
-        self.build_modal_ui()
+            widgets["frame"].configure(bg=bg_col, highlightbackground=bd_col)
+            for elem in widgets["all_elements"]:
+                if elem != widgets["badge"]:
+                    elem.configure(bg=bg_col)
 
-    def save_and_close(self):
+            slot_text = f"✓ SLOT {self.selected_tools.index(k) + 1}" if is_sel else "+ SELECT"
+            badge_fg = "#10b981" if is_sel else th["text"]
+            badge_bg = th["modal_bg"] if is_sel else th["card_bg"]
+            widgets["badge"].configure(text=slot_text, fg=badge_fg, bg=badge_bg)
+
+        # Update counter & launch button
+        status_color = "#10b981" if cnt == 3 else "#ef4444"
+        status_msg = f"[ Selected: {cnt} / 3 Tools • Ready to Launch ]" if cnt == 3 else f"[ Selected: {cnt} / 3 Tools • Pick {3 - cnt} more ]"
+        self.counter_lbl.configure(text=status_msg, fg=status_color)
+        self.launch_btn.configure(bg="#059669" if cnt == 3 else "#334155")
+
+    def toggle_theme(self):
+        self.current_theme = "light" if self.current_theme == "dark" else "dark"
+        self.build_ui()
+
+    def reset_defaults(self):
+        self.selected_tools = ["cam", "mic", "vpn"]
+        self.refresh_cards_ui()
+
+    def launch_desktop_pill(self):
         if len(self.selected_tools) != 3:
-            messagebox.showwarning("Incomplete", "Please select exactly 3 tools for your desktop widget.")
+            messagebox.showwarning("Incomplete Selection", "Please select exactly 3 tools for your desktop widget.")
             return
 
-        new_config = {
+        self.config_data = {
             "selected_sensors": self.selected_tools,
             "theme": self.current_theme,
             "sound_alerts": self.sound_alert_var.get(),
-            "always_on_top": self.config.get("always_on_top", True),
+            "always_on_top": self.config_data.get("always_on_top", True),
             "battery_saver": self.battery_saver_var.get(),
             "first_run_completed": True
         }
+        save_config(self.config_data)
 
-        try:
-            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-                json.dump(new_config, f, indent=2)
-        except Exception as e:
-            messagebox.showerror("Save Error", f"Failed to write config: {e}")
+        # Hide Center Studio window
+        self.withdraw()
 
-        try:
-            self.destroy()
-        except Exception:
-            pass
-        self.on_save_callback(new_config)
+        # Launch Floating Desktop Pill
+        if not self.floating_pill:
+            self.floating_pill = FloatingPillWidget(self, self.config_data, self.reopen_studio)
+        else:
+            self.floating_pill.update_configuration(self.config_data)
+            self.floating_pill.show()
+
+    def reopen_studio(self):
+        """Called from floating pill to re-open the center configuration studio."""
+        self.config_data = load_config()
+        self.selected_tools = list(self.config_data.get("selected_sensors", ["cam", "mic", "vpn"]))
+        self.current_theme = self.config_data.get("theme", "dark")
+        self.build_ui()
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def on_close(self):
+        """Clean shutdown of whole application."""
+        if self.floating_pill:
+            try:
+                self.floating_pill.destroy()
+            except Exception:
+                pass
+        self.destroy()
 
 
 # ---------------------------------------------------------------------------
-# Main Floating Sentinel Pill Widget
+# Floating Desktop Pill Widget (3-Slot Always-on-Top Pill)
 # ---------------------------------------------------------------------------
-class PrivacyMonitorWidget:
-    def __init__(self, master):
-        self.master = master
+class FloatingPillWidget(tk.Toplevel):
+    def __init__(self, parent_studio, config_data, reopen_callback):
+        super().__init__(parent_studio)
+        self.parent_studio = parent_studio
+        self.config = config_data
+        self.reopen_callback = reopen_callback
         self.is_running = True
 
-        # Load Configuration
-        self.load_config()
+        self.overrideredirect(True)
+        self.wm_attributes("-toolwindow", True)
+        self.attributes("-topmost", self.config.get("always_on_top", True))
 
-        # Window settings
-        self.master.overrideredirect(True)
-        self.master.wm_attributes("-toolwindow", True)
-        self.master.attributes("-topmost", self.config.get("always_on_top", True))
-
-        # Dimensions: 126x38 for 3 capsules
-        self.width = 126
+        self.width = 128
         self.height = 38
 
         # Apply Theme Colors
@@ -728,30 +872,30 @@ class PrivacyMonitorWidget:
 
         # Canvas Setup
         self.canvas = tk.Canvas(
-            master, width=self.width, height=self.height,
+            self, width=self.width, height=self.height,
             bg=self.theme["chroma_bg"], highlightthickness=0
         )
         self.canvas.pack()
 
         # Tooltip
-        self.tooltip = TooltipWindow(self.master)
+        self.tooltip = TooltipWindow(self)
 
-        # Dynamic State Dictionary for All Tools
+        # State Dictionary for all tools
         self.state = {
             "cam": {"active": False, "enabled": True, "info": "Ready"},
             "mic": {"active": False, "enabled": True, "has_bt": False, "info": "Ready"},
             "loc": {"active": False, "enabled": True, "info": "Ready"},
             "wifi": {"active": False, "enabled": True, "info": "Disconnected"},
             "lan": {"active": False, "enabled": True, "info": "Disconnected"},
-            "vpn": {"active": False, "enabled": True, "info": "No Active Tunnel"},
-            "bt": {"active": False, "enabled": True, "info": "Radio Off"},
+            "vpn": {"active": False, "enabled": True, "info": "Inactive"},
+            "bt": {"active": False, "enabled": True, "info": "No Devices"},
             "dns": {"active": True, "enabled": True, "info": "Resolvers Checked"}
         }
 
         self.flicker_state = False
         self.prev_alerts = {"cam": False, "mic": False, "vpn": False}
 
-        # Place at bottom-right
+        # Snap to Bottom Right
         self.snap_to_corner("bottom-right")
 
         # Build UI Elements
@@ -760,56 +904,40 @@ class PrivacyMonitorWidget:
         # Context Menu
         self.create_context_menu()
 
-        # Bindings
+        # Event Bindings
         self.canvas.bind("<ButtonPress-1>", self.start_move)
         self.canvas.bind("<ButtonRelease-1>", self.stop_move)
         self.canvas.bind("<B1-Motion>", self.do_move)
         self.canvas.bind("<Button-3>", self.show_context_menu)
-        self.canvas.bind("<Double-Button-1>", lambda e: self.open_studio_modal())
+        self.canvas.bind("<Double-Button-1>", lambda e: self.reopen_callback())
         self.canvas.bind("<Motion>", self.on_mouse_hover)
         self.canvas.bind("<Leave>", lambda e: self.tooltip.hide())
-        self.master.bind("<FocusIn>", self.force_topmost)
-        self.master.bind("<Escape>", lambda e: self.on_exit())
+        self.bind("<FocusIn>", self.force_topmost)
+        self.bind("<Escape>", lambda e: self.on_exit())
 
-        # Start Async Scanning Loops
+        # Start Async Worker Loops
         self.keep_topmost_loop()
         self.sensor_scan_loop()
         self.animation_loop()
 
-        # If first run, present the Center Studio Modal
-        if not self.config.get("first_run_completed", False):
-            self.master.after(500, self.open_studio_modal)
-
-    def load_config(self):
-        defaults = {
-            "selected_sensors": ["cam", "mic", "vpn"],
-            "theme": "dark",
-            "sound_alerts": True,
-            "always_on_top": True,
-            "battery_saver": True,
-            "first_run_completed": False
-        }
-        if os.path.exists(CONFIG_PATH):
-            try:
-                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                    self.config = json.load(f)
-            except Exception:
-                self.config = defaults
-        else:
-            self.config = defaults
-
-        # Ensure valid 3 items
-        if len(self.config.get("selected_sensors", [])) != 3:
-            self.config["selected_sensors"] = ["cam", "mic", "vpn"]
-
     def apply_theme_colors(self):
         theme_name = self.config.get("theme", "dark")
         self.theme = THEMES.get(theme_name, THEMES["dark"])
-        self.master.attributes("-transparentcolor", self.theme["chroma_bg"])
-        self.master.configure(bg=self.theme["chroma_bg"])
+        self.attributes("-transparentcolor", self.theme["chroma_bg"])
+        self.configure(bg=self.theme["chroma_bg"])
+
+    def update_configuration(self, new_config):
+        self.config = new_config
+        self.apply_theme_colors()
+        self.canvas.configure(bg=self.theme["chroma_bg"])
+        self.build_pill_ui()
+        self.create_context_menu()
+
+    def show(self):
+        self.deiconify()
+        self.force_topmost()
 
     def build_pill_ui(self):
-        """Draws the 3 chosen capsules dynamically."""
         self.canvas.delete("all")
         th = self.theme
 
@@ -820,14 +948,11 @@ class PrivacyMonitorWidget:
 
         # 2 Vertical Divider Columns
         self.canvas.create_line(42, 8, 42, 30, fill=th["divider"], width=1.2)
-        self.canvas.create_line(84, 8, 84, 30, fill=th["divider"], width=1.2)
+        self.canvas.create_line(85, 8, 85, 30, fill=th["divider"], width=1.2)
 
-        # 3 Slots
         self.slot_elements = []
         selected = self.config["selected_sensors"]
-
-        # Slot centers: 21, 63, 105
-        x_centers = [21, 63, 105]
+        x_centers = [21, 63, 106]
 
         for i in range(3):
             xc = x_centers[i]
@@ -862,8 +987,8 @@ class PrivacyMonitorWidget:
         return self.canvas.create_polygon(points, **kwargs, smooth=True)
 
     def snap_to_corner(self, position):
-        screen_w = self.master.winfo_screenwidth()
-        screen_h = self.master.winfo_screenheight()
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
         if position == "bottom-right":
             x = screen_w - self.width - 32
             y = screen_h - self.height - 56
@@ -879,18 +1004,18 @@ class PrivacyMonitorWidget:
         else:
             x = screen_w - self.width - 32
             y = screen_h - self.height - 56
-        self.master.geometry(f"{self.width}x{self.height}+{x}+{y}")
+        self.geometry(f"{self.width}x{self.height}+{x}+{y}")
         self.force_topmost()
 
     def force_topmost(self, event=None):
         if not self.is_running or not self.config.get("always_on_top", True):
             return
         try:
-            hwnd = user32.GetAncestor(self.master.winfo_id(), 2)
+            hwnd = user32.GetAncestor(self.winfo_id(), 2)
             if not hwnd:
-                hwnd = self.master.winfo_id()
+                hwnd = self.winfo_id()
             user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 1 | 2 | 16)
-            self.master.attributes('-topmost', True)
+            self.attributes('-topmost', True)
         except Exception:
             pass
 
@@ -898,7 +1023,7 @@ class PrivacyMonitorWidget:
         if not self.is_running:
             return
         self.force_topmost()
-        self.master.after(1000, self.keep_topmost_loop)
+        self.after(1000, self.keep_topmost_loop)
 
     def start_move(self, event):
         self.x = event.x
@@ -913,13 +1038,13 @@ class PrivacyMonitorWidget:
     def do_move(self, event):
         if not self.x or not self.y:
             return
-        x = self.master.winfo_x() + (event.x - self.x)
-        y = self.master.winfo_y() + (event.y - self.y)
-        sw = self.master.winfo_screenwidth()
-        sh = self.master.winfo_screenheight()
+        x = self.winfo_x() + (event.x - self.x)
+        y = self.winfo_y() + (event.y - self.y)
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
         x = max(0, min(x, sw - self.width))
         y = max(0, min(y, sh - self.height))
-        self.master.geometry(f"+{x}+{y}")
+        self.geometry(f"+{x}+{y}")
 
     def on_mouse_hover(self, event):
         slot_idx = min(2, max(0, event.x // 42))
@@ -928,7 +1053,6 @@ class PrivacyMonitorWidget:
         meta = TOOL_CATALOG[key]
         st = self.state[key]
 
-        # Formulate description text
         if key == "cam":
             if st["active"]:
                 txt = f"🚨 CAMERA IN USE: {st['info']}"
@@ -979,21 +1103,17 @@ class PrivacyMonitorWidget:
         else:
             txt = f"{meta['title']}: {st['info']}"
 
-        rx = self.master.winfo_rootx() + event.x
-        ry = self.master.winfo_rooty()
+        rx = self.winfo_rootx() + event.x
+        ry = self.winfo_rooty()
         self.tooltip.show(txt, rx, ry, self.config.get("theme", "dark"))
 
     def sensor_scan_loop(self):
-        """Scans only the chosen active sensors to conserve battery and CPU."""
         if not self.is_running:
             return
 
         selected = self.config["selected_sensors"]
-
-        # 1. Power Status
         is_ac, batt_pct = HardwareEngine.get_power_status()
 
-        # 2. Camera Scan (if selected)
         if "cam" in selected:
             hw_ok = HardwareEngine.is_camera_hardware_ok()
             in_use, apps = HardwareEngine.scan_consent_store("webcam")
@@ -1001,7 +1121,6 @@ class PrivacyMonitorWidget:
             self.state["cam"]["enabled"] = hw_ok
             self.state["cam"]["info"] = ", ".join(apps) if apps else "Idle"
 
-        # 3. Mic & Bluetooth Mic Scan (if selected)
         if "mic" in selected:
             has_dev, has_bt, dev_names = HardwareEngine.check_audio_devices()
             in_use, apps = HardwareEngine.scan_consent_store("microphone")
@@ -1010,13 +1129,11 @@ class PrivacyMonitorWidget:
             self.state["mic"]["has_bt"] = has_bt
             self.state["mic"]["info"] = ", ".join(apps) if apps else ("BT-Mic Ready" if has_bt else "Idle")
 
-        # 4. Location Scan (if selected)
         if "loc" in selected:
             in_use, apps = HardwareEngine.scan_consent_store("location")
             self.state["loc"]["active"] = in_use
             self.state["loc"]["info"] = ", ".join(apps) if apps else "Idle"
 
-        # 5. Network / VPN Scans (if wifi, lan, or vpn selected)
         if any(k in selected for k in ("wifi", "lan", "vpn")):
             (wf_on, wf_inf), (lan_on, lan_inf), (vpn_on, vpn_inf) = HardwareEngine.scan_network_adapters()
             if "wifi" in selected:
@@ -1029,14 +1146,12 @@ class PrivacyMonitorWidget:
                 self.state["vpn"]["active"] = vpn_on
                 self.state["vpn"]["info"] = vpn_inf or "Inactive"
 
-        # 6. Bluetooth Scan (if selected)
         if "bt" in selected:
             has_bt_paired, bt_list = HardwareEngine.get_bluetooth_info()
             _, has_bt_mic, _ = HardwareEngine.check_audio_devices()
             self.state["bt"]["active"] = has_bt_mic or (has_bt_paired and len(bt_list) > 0)
             self.state["bt"]["info"] = f"{len(bt_list)} Paired" if bt_list else "None"
 
-        # 7. DNS Scan (if selected)
         if "dns" in selected:
             is_sec, dns_list = HardwareEngine.check_dns_security()
             self.state["dns"]["active"] = is_sec
@@ -1055,10 +1170,9 @@ class PrivacyMonitorWidget:
         else:
             interval = 1600  # On AC Power: 1.6 seconds
 
-        self.master.after(interval, self.sensor_scan_loop)
+        self.after(interval, self.sensor_scan_loop)
 
     def animation_loop(self):
-        """Animates LEDs, pulsing halos, and status colors on the floating pill."""
         if not self.is_running:
             return
 
@@ -1072,17 +1186,14 @@ class PrivacyMonitorWidget:
             is_act = st["active"]
 
             if is_act:
-                # Active Alert Pulse
                 col = meta["alert_color"] if self.flicker_state else "#991b1b"
                 halo_col = meta["alert_color"] if self.flicker_state else ""
                 lbl_col = meta["alert_color"]
             elif st.get("enabled", True):
-                # Ready & Idle
                 col = meta["ready_color"]
                 halo_col = ""
                 lbl_col = th["text"]
             else:
-                # Disabled / Blocked
                 col = th["disabled_led"]
                 halo_col = ""
                 lbl_col = th["text"]
@@ -1091,15 +1202,15 @@ class PrivacyMonitorWidget:
             self.canvas.itemconfigure(slot["halo"], outline=halo_col)
             self.canvas.itemconfigure(slot["label"], fill=lbl_col)
 
-        self.master.after(350, self.animation_loop)
+        self.after(350, self.animation_loop)
 
     def create_context_menu(self):
         th = self.theme
-        self.menu = tk.Menu(self.master, tearoff=0, bg=th["pill_bg"], fg=th["text_highlight"], activebackground="#0284c7")
+        self.menu = tk.Menu(self, tearoff=0, bg=th["pill_bg"], fg=th["text_highlight"], activebackground="#0284c7")
         self.menu.add_command(label="🛡️ CLM Sensor v3.0", state="disabled")
         self.menu.add_separator()
 
-        self.menu.add_command(label="⚙️ Customize 3-Slot Sensors & Theme...", command=self.open_studio_modal)
+        self.menu.add_command(label="⚙️ Customize 3-Slot Sensors & Theme...", command=self.reopen_callback)
         self.menu.add_separator()
 
         self.topmost_var = tk.BooleanVar(value=self.config.get("always_on_top", True))
@@ -1126,21 +1237,14 @@ class PrivacyMonitorWidget:
         self.tooltip.hide()
         self.menu.tk_popup(event.x_root, event.y_root)
 
-    def open_studio_modal(self):
-        CenterStudioModal(self.master, self.config, self.on_config_updated)
-
-    def on_config_updated(self, new_config):
-        self.config = new_config
-        self.apply_theme_colors()
-        self.build_pill_ui()
-        self.create_context_menu()
-
     def toggle_topmost(self):
         self.config["always_on_top"] = self.topmost_var.get()
-        self.master.attributes("-topmost", self.config["always_on_top"])
+        self.attributes("-topmost", self.config["always_on_top"])
+        save_config(self.config)
 
     def toggle_sound(self):
         self.config["sound_alerts"] = self.sound_var.get()
+        save_config(self.config)
 
     def is_autostart_enabled(self):
         try:
@@ -1172,12 +1276,15 @@ class PrivacyMonitorWidget:
         self.is_running = False
         self.tooltip.hide()
         try:
-            self.master.destroy()
+            self.destroy()
         except Exception:
             pass
+        self.parent_studio.destroy()
 
 
+# ---------------------------------------------------------------------------
+# Main Application Entry Point
+# ---------------------------------------------------------------------------
 if __name__ == '__main__':
-    root = tk.Tk()
-    app = PrivacyMonitorWidget(root)
-    root.mainloop()
+    studio_app = CenterStudioWindow()
+    studio_app.mainloop()

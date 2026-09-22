@@ -1,8 +1,8 @@
 {
   "selected_sensors": [
-    "mic",
-    "vpn",
-    "wifi"
+    "wifi",
+    "cam",
+    "bt"
   ],
   "theme": "dark",
   "sound_alerts": true,
