@@ -437,40 +437,48 @@ TOOL_CATALOG = {
 
 
 # ---------------------------------------------------------------------------
-# Theme Palettes (Light & Dark)
+# Theme Palettes (Normal Clean Colors: Light & Dark)
 # ---------------------------------------------------------------------------
 THEMES = {
     "dark": {
         "chroma_bg": "#010101",
-        "pill_border": "#334155",
-        "pill_bg": "#0f172a",
-        "pill_inner": "#020617",
-        "divider": "#1e293b",
-        "rim_border": "#1e293b",
+        "pill_border": "#272a33",
+        "pill_bg": "#16181f",
+        "pill_inner": "#101217",
+        "divider": "#22252e",
+        "rim_border": "#22252e",
         "text": "#94a3b8",
-        "text_highlight": "#f8fafc",
-        "disabled_led": "#334155",
-        "modal_bg": "#0b1220",
-        "card_bg": "#131d31",
-        "card_border": "#1e2d4a",
+        "text_highlight": "#ffffff",
+        "disabled_led": "#475569",
+        "modal_bg": "#12141a",
+        "card_bg": "#181a22",
+        "card_border": "#252834",
         "card_active_border": "#10b981",
-        "card_active_bg": "#1e293b"
+        "card_active_bg": "#1b232c",
+        "badge_active_bg": "#064e3b",
+        "badge_active_fg": "#34d399",
+        "badge_inactive_bg": "#21242e",
+        "badge_inactive_fg": "#64748b"
     },
     "light": {
         "chroma_bg": "#feffff",
         "pill_border": "#cbd5e1",
         "pill_bg": "#ffffff",
-        "pill_inner": "#f1f5f9",
+        "pill_inner": "#f8fafc",
         "divider": "#e2e8f0",
         "rim_border": "#cbd5e1",
-        "text": "#475569",
+        "text": "#64748b",
         "text_highlight": "#0f172a",
         "disabled_led": "#94a3b8",
         "modal_bg": "#f8fafc",
         "card_bg": "#ffffff",
         "card_border": "#e2e8f0",
         "card_active_border": "#059669",
-        "card_active_bg": "#ecfdf5"
+        "card_active_bg": "#f0fdf4",
+        "badge_active_bg": "#dcfce7",
+        "badge_active_fg": "#15803d",
+        "badge_inactive_bg": "#f1f5f9",
+        "badge_inactive_fg": "#94a3b8"
     }
 }
 
@@ -560,8 +568,8 @@ class CenterStudioWindow(tk.Tk):
             except Exception:
                 pass
 
-        # Dimensions & Centering
-        w, h = 680, 580
+        # Dimensions & Centering (820px width gives all 4 columns ample breathing room)
+        w, h = 820, 600
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
         x = (sw - w) // 2
@@ -599,12 +607,12 @@ class CenterStudioWindow(tk.Tk):
 
         title_lbl = tk.Label(
             title_frame, text="🛡️ CLM Sensor — Sentinel Studio",
-            font=("Segoe UI", 16, "bold"), fg=th["text_highlight"], bg=th["modal_bg"]
+            font=("Segoe UI", 15, "bold"), fg=th["text_highlight"], bg=th["modal_bg"]
         )
         title_lbl.pack(anchor="w")
 
         sub_lbl = tk.Label(
-            title_frame, text="Choose EXACTLY 3 active tools for your floating desktop widget:",
+            title_frame, text="Select 3 active sensors for your floating desktop HUD widget:",
             font=("Segoe UI", 9), fg=th["text"], bg=th["modal_bg"]
         )
         sub_lbl.pack(anchor="w", pady=(2, 0))
@@ -619,8 +627,8 @@ class CenterStudioWindow(tk.Tk):
         batt_text = f"{batt_icon} {batt_pct}% {'(AC)' if is_ac else '(Battery)'}"
         batt_badge = tk.Label(
             hdr_right, text=batt_text, font=("Segoe UI", 8, "bold"),
-            bg="#1e293b" if self.current_theme == "dark" else "#e2e8f0",
-            fg="#10b981" if is_ac else "#f59e0b", padx=8, pady=3
+            bg="#21242e" if self.current_theme == "dark" else "#e2e8f0",
+            fg="#10b981" if is_ac else "#f59e0b", padx=9, pady=4
         )
         batt_badge.pack(side="right", padx=(8, 0))
 
@@ -628,9 +636,9 @@ class CenterStudioWindow(tk.Tk):
         theme_btn_text = "☀️ Light Mode" if self.current_theme == "dark" else "🌙 Dark Mode"
         theme_btn = tk.Button(
             hdr_right, text=theme_btn_text, font=("Segoe UI", 8, "bold"),
-            bg="#1e293b" if self.current_theme == "dark" else "#e2e8f0",
+            bg="#21242e" if self.current_theme == "dark" else "#e2e8f0",
             fg=th["text_highlight"], bd=0, highlightthickness=0,
-            padx=10, pady=3, cursor="hand2", command=self.toggle_theme
+            padx=11, pady=4, cursor="hand2", command=self.toggle_theme
         )
         theme_btn.pack(side="right")
 
@@ -648,9 +656,14 @@ class CenterStudioWindow(tk.Tk):
         )
         self.counter_lbl.pack(anchor="w")
 
-        # 8 Tools Grid Container (4 columns x 2 rows)
+        # 8 Tools Grid Container (4 uniform columns x 2 rows)
         grid_frame = tk.Frame(self, bg=th["modal_bg"], padx=20)
         grid_frame.pack(fill="both", expand=True)
+
+        for c in range(4):
+            grid_frame.columnconfigure(c, weight=1, uniform="tool_col")
+        for r in range(2):
+            grid_frame.rowconfigure(r, weight=1)
 
         tool_keys = list(TOOL_CATALOG.keys())
         for idx, key in enumerate(tool_keys):
@@ -667,7 +680,7 @@ class CenterStudioWindow(tk.Tk):
         opts_frame.pack(side="left")
 
         c_bat = tk.Checkbutton(
-            opts_frame, text="⚡ Battery Saver (Throttle on battery)",
+            opts_frame, text="⚡ Battery Saver (Auto-throttles when on battery)",
             variable=self.battery_saver_var, font=("Segoe UI", 8),
             bg=th["modal_bg"], fg=th["text"], selectcolor=th["card_bg"],
             activebackground=th["modal_bg"], activeforeground=th["text_highlight"]
@@ -675,7 +688,7 @@ class CenterStudioWindow(tk.Tk):
         c_bat.pack(anchor="w")
 
         c_snd = tk.Checkbutton(
-            opts_frame, text="🔔 Sound Alert on active sensor tap",
+            opts_frame, text="🔔 Audio Chime Alert on active sensor tap",
             variable=self.sound_alert_var, font=("Segoe UI", 8),
             bg=th["modal_bg"], fg=th["text"], selectcolor=th["card_bg"],
             activebackground=th["modal_bg"], activeforeground=th["text_highlight"]
@@ -690,17 +703,17 @@ class CenterStudioWindow(tk.Tk):
         reset_btn = tk.Button(
             btn_frame, text="🔄 Reset Defaults", font=("Segoe UI", 9),
             bg=th["card_bg"], fg=th["text"], bd=0, highlightthickness=1,
-            highlightbackground=th["card_border"], padx=10, pady=6, cursor="hand2",
+            highlightbackground=th["card_border"], padx=12, pady=6, cursor="hand2",
             command=self.reset_defaults
         )
-        reset_btn.pack(side="left", padx=(0, 8))
+        reset_btn.pack(side="left", padx=(0, 10))
 
         # Launch Primary Button
         self.launch_btn = tk.Button(
             btn_frame, text="🚀 LAUNCH DESKTOP PILL", font=("Segoe UI", 9, "bold"),
             bg="#059669" if cnt == 3 else "#334155", fg="#ffffff",
             activebackground="#10b981", activeforeground="#ffffff",
-            bd=0, highlightthickness=0, padx=14, pady=6, cursor="hand2",
+            bd=0, highlightthickness=0, padx=16, pady=6, cursor="hand2",
             command=self.launch_desktop_pill
         )
         self.launch_btn.pack(side="left")
@@ -712,45 +725,53 @@ class CenterStudioWindow(tk.Tk):
         bg_col = th["card_active_bg"] if is_sel else th["card_bg"]
         bd_col = th["card_active_border"] if is_sel else th["card_border"]
 
-        # Outer Frame
+        # Proportional Outer Frame with sticky nsew
         card = tk.Frame(
-            parent, bg=bg_col, highlightthickness=2, highlightbackground=bd_col,
-            padx=10, pady=8, cursor="hand2", width=145, height=130
+            parent, bg=bg_col, highlightthickness=1.5, highlightbackground=bd_col,
+            padx=12, pady=10, cursor="hand2"
         )
         card.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
-        card.grid_propagate(False)
 
-        # Header with Icon & Slot Badge
+        # Top Row: Icon + Code on Left, Slot Badge on Right
         top_f = tk.Frame(card, bg=bg_col)
         top_f.pack(fill="x")
 
         icon_lbl = tk.Label(top_f, text=tool["icon"], font=("Segoe UI", 16), bg=bg_col, fg=th["text_highlight"])
         icon_lbl.pack(side="left")
 
+        code_lbl = tk.Label(top_f, text=tool["code"], font=("Segoe UI", 10, "bold"), bg=bg_col, fg=th["text_highlight"])
+        code_lbl.pack(side="left", padx=(6, 0))
+
         slot_text = f"✓ SLOT {self.selected_tools.index(key) + 1}" if is_sel else "+ SELECT"
-        badge_fg = "#10b981" if is_sel else th["text"]
-        badge_bg = th["modal_bg"] if is_sel else th["card_bg"]
+        badge_fg = th["badge_active_fg"] if is_sel else th["badge_inactive_fg"]
+        badge_bg = th["badge_active_bg"] if is_sel else th["badge_inactive_bg"]
         badge_lbl = tk.Label(
             top_f, text=slot_text, font=("Segoe UI", 7, "bold"),
-            bg=badge_bg, fg=badge_fg, padx=4, pady=1
+            bg=badge_bg, fg=badge_fg, padx=6, pady=2
         )
         badge_lbl.pack(side="right")
 
-        # Code & Title
-        code_lbl = tk.Label(card, text=f"{tool['code']} • {tool['title']}", font=("Segoe UI", 8, "bold"), bg=bg_col, fg=th["text_highlight"], anchor="w")
-        code_lbl.pack(fill="x", pady=(4, 0))
+        # Tool Title
+        title_lbl = tk.Label(
+            card, text=tool["title"], font=("Segoe UI", 8, "bold"),
+            bg=bg_col, fg=th["text_highlight"], anchor="w"
+        )
+        title_lbl.pack(fill="x", pady=(6, 0))
 
         # Description
-        desc_lbl = tk.Label(card, text=tool["desc"], font=("Segoe UI", 7), bg=bg_col, fg=th["text"], wraplength=130, justify="left")
+        desc_lbl = tk.Label(
+            card, text=tool["desc"], font=("Segoe UI", 7),
+            bg=bg_col, fg=th["text"], wraplength=155, justify="left"
+        )
         desc_lbl.pack(fill="x", pady=(2, 0))
 
         self.card_widgets[key] = {
             "frame": card,
             "badge": badge_lbl,
-            "all_elements": [card, top_f, icon_lbl, badge_lbl, code_lbl, desc_lbl]
+            "all_elements": [card, top_f, icon_lbl, code_lbl, badge_lbl, title_lbl, desc_lbl]
         }
 
-        # Bind Click on all child elements
+        # Bind Click on all card elements
         for elem in self.card_widgets[key]["all_elements"]:
             elem.bind("<Button-1>", lambda e, k=key: self.on_card_clicked(k))
 
@@ -762,7 +783,6 @@ class CenterStudioWindow(tk.Tk):
             self.selected_tools.remove(key)
         else:
             if len(self.selected_tools) >= 3:
-                # Replace the oldest selection
                 self.selected_tools.pop(0)
                 self.selected_tools.append(key)
             else:
@@ -774,7 +794,6 @@ class CenterStudioWindow(tk.Tk):
         th = THEMES[self.current_theme]
         cnt = len(self.selected_tools)
 
-        # Update each card
         for k, widgets in self.card_widgets.items():
             is_sel = k in self.selected_tools
             bg_col = th["card_active_bg"] if is_sel else th["card_bg"]
@@ -786,8 +805,8 @@ class CenterStudioWindow(tk.Tk):
                     elem.configure(bg=bg_col)
 
             slot_text = f"✓ SLOT {self.selected_tools.index(k) + 1}" if is_sel else "+ SELECT"
-            badge_fg = "#10b981" if is_sel else th["text"]
-            badge_bg = th["modal_bg"] if is_sel else th["card_bg"]
+            badge_fg = th["badge_active_fg"] if is_sel else th["badge_inactive_fg"]
+            badge_bg = th["badge_active_bg"] if is_sel else th["badge_inactive_bg"]
             widgets["badge"].configure(text=slot_text, fg=badge_fg, bg=badge_bg)
 
         # Update counter & launch button
