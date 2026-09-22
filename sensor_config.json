@@ -1,0 +1,12 @@
+{
+  "selected_sensors": [
+    "mic",
+    "vpn",
+    "wifi"
+  ],
+  "theme": "dark",
+  "sound_alerts": true,
+  "always_on_top": true,
+  "battery_saver": true,
+  "first_run_completed": true
+}
