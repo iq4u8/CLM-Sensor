@@ -1,0 +1,8 @@
+# Compiled binaries & installers
+CML Setup.exe
+__pycache__/
+*.pyc
+*.pyo
+build/
+dist/
+*.spec

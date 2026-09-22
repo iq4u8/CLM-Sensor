@@ -1,0 +1,274 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="100%" height="480">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050811" />
+      <stop offset="50%" stop-color="#0a1020" />
+      <stop offset="100%" stop-color="#02040a" />
+    </linearGradient>
+
+    <!-- Mesh Glows -->
+    <radialGradient id="cyanGlow" cx="25%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="alertGlow" cx="75%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.22" />
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Glass Borders & Linear Fills -->
+    <linearGradient id="glassBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.25" />
+    </linearGradient>
+
+    <linearGradient id="pillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#262626" />
+      <stop offset="100%" stop-color="#141414" />
+    </linearGradient>
+
+    <!-- Shadows -->
+    <filter id="pillShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.75" />
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#06b6d4" flood-opacity="0.25" />
+    </filter>
+
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+
+    <filter id="redNeon" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="amberNeon" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="greenNeon" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Grid Pattern -->
+    <pattern id="radarGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.8" stroke-opacity="0.4" />
+      <circle cx="0" cy="0" r="1.5" fill="#38bdf8" fill-opacity="0.25" />
+    </pattern>
+  </defs>
+
+  <style>
+    .font-sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .mono { font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; }
+
+    @keyframes redPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.88); }
+    }
+    @keyframes amberPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.9); }
+    }
+    @keyframes radarWave {
+      0% { r: 50px; opacity: 0.8; }
+      100% { r: 280px; opacity: 0; }
+    }
+    @keyframes floatPill {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(0.3deg); }
+    }
+    @keyframes floatCard1 {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-7px) translateX(3px); }
+    }
+    @keyframes floatCard2 {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(7px) translateX(-3px); }
+    }
+    @keyframes scanSweep {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .anim-red-pulse { animation: redPulse 0.8s ease-in-out infinite; transform-origin: 35px 24px; }
+    .anim-amber-pulse { animation: amberPulse 1.2s ease-in-out infinite; transform-origin: 105px 24px; }
+    .anim-radar { animation: radarWave 4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite; }
+    .anim-pill-stage { animation: floatPill 6s ease-in-out infinite; }
+    .anim-card-1 { animation: floatCard1 5.2s ease-in-out infinite; }
+    .anim-card-2 { animation: floatCard2 6.5s ease-in-out infinite; }
+  </style>
+
+  <!-- Background Canvas -->
+  <rect width="1200" height="480" fill="url(#bgGrad)" />
+  <rect width="1200" height="480" fill="url(#radarGrid)" />
+
+  <!-- Ambient Glow Orbs -->
+  <circle cx="280" cy="180" r="320" fill="url(#cyanGlow)" />
+  <circle cx="920" cy="240" r="340" fill="url(#alertGlow)" />
+
+  <!-- Radar Rings in Background -->
+  <g transform="translate(930, 240)">
+    <circle cx="0" cy="0" r="190" fill="none" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 6" opacity="0.6" />
+    <circle cx="0" cy="0" r="120" fill="none" stroke="#0ea5e9" stroke-width="0.8" opacity="0.25" />
+    <circle class="anim-radar" cx="0" cy="0" r="60" fill="none" stroke="#06b6d4" stroke-width="1.5" />
+  </g>
+
+  <!-- ================= LEFT BRANDING COLUMN ================= -->
+  <g transform="translate(64, 60)">
+    <!-- Security Sentinel Badge -->
+    <g transform="translate(0, 0)">
+      <rect width="320" height="34" rx="17" fill="#0c1929" fill-opacity="0.9" stroke="#0284c7" stroke-width="1.2" />
+      <!-- Shield Icon -->
+      <path d="M18 11 L25 14 L25 21 C25 25 18 28 18 28 C18 28 11 25 11 21 L11 14 Z" fill="#0369a1" stroke="#38bdf8" stroke-width="1.2" />
+      <text x="36" y="22" class="font-sans" font-size="11.5" font-weight="700" fill="#bae6fd" letter-spacing="1.5">WINDOWS PRIVACY SENTINEL</text>
+    </g>
+
+    <!-- Main Title -->
+    <text x="0" y="86" class="font-sans" font-size="46" font-weight="900" fill="#f8fafc" letter-spacing="-1">
+      CLM Sensor
+    </text>
+
+    <!-- Subtitle -->
+    <text x="0" y="124" class="font-sans" font-size="20" font-weight="600" fill="#94a3b8">
+      Real-Time Camera, Mic &amp; Location Guard
+    </text>
+    <text x="0" y="150" class="font-sans" font-size="14.5" font-weight="400" fill="#64748b">
+      Lightweight, always-on-top frameless HUD detecting unauthorized hardware &amp; OS sensor access.
+    </text>
+
+    <!-- Key Feature Badges -->
+    <g transform="translate(0, 186)">
+      <!-- Badge 1: Win32 ConsentStore -->
+      <g transform="translate(0, 0)">
+        <rect width="180" height="36" rx="10" fill="#111c2e" stroke="#1e3a5f" stroke-width="1" />
+        <path d="M16 18l4 4 8-8" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" />
+        <text x="36" y="23" class="font-sans" font-size="12" font-weight="600" fill="#e2e8f0">ConsentStore Reg</text>
+      </g>
+
+      <!-- Badge 2: Fn Kill-Key Hook -->
+      <g transform="translate(192, 0)">
+        <rect width="170" height="36" rx="10" fill="#111c2e" stroke="#1e3a5f" stroke-width="1" />
+        <circle cx="206" cy="18" r="4.5" fill="#f59e0b" />
+        <text x="220" y="23" class="font-sans" font-size="12" font-weight="600" fill="#e2e8f0">Fn Key Hardware</text>
+      </g>
+
+      <!-- Badge 3: Zero Cloud RAM -->
+      <g transform="translate(374, 0)">
+        <rect width="150" height="36" rx="10" fill="#111c2e" stroke="#1e3a5f" stroke-width="1" />
+        <circle cx="388" cy="18" r="4" fill="#10b981" />
+        <text x="400" y="23" class="font-sans" font-size="12" font-weight="600" fill="#e2e8f0">100% Offline</text>
+      </g>
+    </g>
+
+    <!-- Metrics Row -->
+    <g transform="translate(0, 260)">
+      <g>
+        <text x="0" y="26" class="mono" font-size="28" font-weight="800" fill="#38bdf8">0ms</text>
+        <text x="0" y="46" class="font-sans" font-size="11.5" font-weight="600" fill="#64748b" letter-spacing="0.5">CLOUD EXPOSURE</text>
+      </g>
+      <line x1="120" y1="8" x2="120" y2="48" stroke="#1e293b" stroke-width="1.5" />
+      <g transform="translate(140, 0)">
+        <text x="0" y="26" class="mono" font-size="28" font-weight="800" fill="#10b981">&lt; 15 MB</text>
+        <text x="0" y="46" class="font-sans" font-size="11.5" font-weight="600" fill="#64748b" letter-spacing="0.5">RAM FOOTPRINT</text>
+      </g>
+      <line x1="260" y1="8" x2="260" y2="48" stroke="#1e293b" stroke-width="1.5" />
+      <g transform="translate(280, 0)">
+        <text x="0" y="26" class="mono" font-size="28" font-weight="800" fill="#f59e0b">2000 ms</text>
+        <text x="0" y="46" class="font-sans" font-size="11.5" font-weight="600" fill="#64748b" letter-spacing="0.5">REGISTRY REFRESH</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ================= RIGHT VISUAL STAGE (SIMULATED CLM WIDGET) ================= -->
+  <g transform="translate(680, 70)">
+
+    <!-- Top Floating Chip: Registry Inspector -->
+    <g class="anim-card-1" transform="translate(40, 0)" filter="url(#cardShadow)">
+      <rect width="400" height="66" rx="14" fill="#0d1829" fill-opacity="0.9" stroke="#1e3a5f" stroke-width="1.2" />
+      <circle cx="28" cy="33" r="10" fill="#0369a1" fill-opacity="0.4" />
+      <text x="23" y="38" class="mono" font-size="13" fill="#38bdf8">⚙</text>
+      <text x="48" y="26" class="font-sans" font-size="10.5" font-weight="700" fill="#38bdf8" letter-spacing="0.5">REGISTRY POLLING SENTINEL</text>
+      <text x="48" y="44" class="mono" font-size="11.5" fill="#94a3b8">CapabilityAccessManager\ConsentStore</text>
+      <rect x="300" y="20" width="85" height="24" rx="12" fill="#065f46" fill-opacity="0.6" stroke="#059669" stroke-width="0.8" />
+      <text x="312" y="36" class="mono" font-size="10" font-weight="700" fill="#34d399">ACTIVE SCAN</text>
+    </g>
+
+    <!-- Main Widget Stage (Center) -->
+    <g class="anim-pill-stage" transform="translate(70, 110)">
+      <!-- Desktop Frosted Background Mockup -->
+      <rect x="-30" y="-20" width="370" height="150" rx="20" fill="#0f172a" fill-opacity="0.7" stroke="url(#glassBorder)" stroke-width="1.4" filter="url(#pillShadow)" />
+
+      <text x="-12" y="8" class="font-sans" font-size="11" font-weight="700" fill="#64748b" letter-spacing="1">DESKTOP TASKBAR HUD (HWND_TOPMOST)</text>
+
+      <!-- ================= ACTUAL CLM SENSOR PILL WIDGET ================= -->
+      <!-- Enlarged 2.4x for stunning presentation -->
+      <g transform="translate(45, 32)">
+        <!-- Outer Frameless Pill Border -->
+        <rect width="216" height="72" rx="36" fill="#151515" stroke="#444444" stroke-width="2.5" />
+        <!-- Inner Pill Body -->
+        <rect x="3" y="3" width="210" height="66" rx="33" fill="url(#pillGrad)" />
+
+        <!-- Vertical Divider Lines -->
+        <line x1="72" y1="18" x2="72" y2="54" stroke="#3a3a3a" stroke-width="2" />
+        <line x1="144" y1="18" x2="144" y2="54" stroke="#3a3a3a" stroke-width="2" />
+
+        <!-- Sensor 1: CAM (Red Alert Flicker Simulation) -->
+        <g>
+          <!-- Rim -->
+          <circle cx="36" cy="25" r="13" fill="#0a0a0a" stroke="#111111" stroke-width="1.5" />
+          <!-- Glow LED -->
+          <circle class="anim-red-pulse" cx="36" cy="25" r="9" fill="#ff0000" filter="url(#redNeon)" />
+          <!-- Caption -->
+          <text x="36" y="54" class="font-sans" font-size="11" font-weight="800" fill="#ef4444" text-anchor="middle" letter-spacing="1">CAM</text>
+        </g>
+
+        <!-- Sensor 2: MIC (Yellow In-Use Flicker Simulation) -->
+        <g>
+          <!-- Rim -->
+          <circle cx="108" cy="25" r="13" fill="#0a0a0a" stroke="#111111" stroke-width="1.5" />
+          <!-- Glow LED -->
+          <circle class="anim-amber-pulse" cx="108" cy="25" r="9" fill="#ffcc00" filter="url(#amberNeon)" />
+          <!-- Caption -->
+          <text x="108" y="54" class="font-sans" font-size="11" font-weight="800" fill="#f59e0b" text-anchor="middle" letter-spacing="1">MIC</text>
+        </g>
+
+        <!-- Sensor 3: LOC (Solid Green Armed Ready Simulation) -->
+        <g>
+          <!-- Rim -->
+          <circle cx="180" cy="25" r="13" fill="#0a0a0a" stroke="#111111" stroke-width="1.5" />
+          <!-- Glow LED -->
+          <circle cx="180" cy="25" r="9" fill="#00ff00" filter="url(#greenNeon)" />
+          <!-- Caption -->
+          <text x="180" y="54" class="font-sans" font-size="11" font-weight="800" fill="#10b981" text-anchor="middle" letter-spacing="1">LOC</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Bottom Floating Chip: Hardware Kill-Switch -->
+    <g class="anim-card-2" transform="translate(10, 285)" filter="url(#cardShadow)">
+      <rect width="420" height="66" rx="14" fill="#0c1929" fill-opacity="0.9" stroke="#10b981" stroke-width="1.2" stroke-opacity="0.6" />
+      <circle cx="28" cy="33" r="10" fill="#065f46" fill-opacity="0.5" />
+      <text x="21" y="38" class="font-sans" font-size="14" fill="#34d399">⚡</text>
+      <text x="48" y="26" class="font-sans" font-size="10.5" font-weight="700" fill="#34d399" letter-spacing="0.5">HARDWARE KILL-SWITCH (Fn + F10)</text>
+      <text x="48" y="44" class="mono" font-size="11.5" fill="#94a3b8">Get-PnpDevice -Class Camera: VERIFIED ONLINE</text>
+      <rect x="330" y="20" width="75" height="24" rx="12" fill="#1e293b" stroke="#334155" stroke-width="0.8" />
+      <text x="342" y="36" class="mono" font-size="10" font-weight="700" fill="#e2e8f0">4000ms</text>
+    </g>
+
+  </g>
+</svg>

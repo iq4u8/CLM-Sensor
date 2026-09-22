@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 250" width="100%" height="250">
+  <defs>
+    <linearGradient id="pipeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070c18" />
+      <stop offset="100%" stop-color="#02040a" />
+    </linearGradient>
+
+    <filter id="pulseGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    .font-pipe { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-pipe { font-family: 'SF Mono', Consolas, monospace; }
+
+    @keyframes streamFlow {
+      0% { stroke-dashoffset: 80; }
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes nodeBlink {
+      0%, 100% { opacity: 0.9; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.85); }
+    }
+
+    .energy-line-cyan {
+      stroke-dasharray: 8 12;
+      animation: streamFlow 1.1s linear infinite;
+    }
+    .energy-line-emerald {
+      stroke-dasharray: 8 12;
+      animation: streamFlow 1.1s linear infinite;
+    }
+    .energy-line-alert {
+      stroke-dasharray: 8 12;
+      animation: streamFlow 1.1s linear infinite;
+    }
+    .node-pulse {
+      animation: nodeBlink 2s ease-in-out infinite;
+      transform-origin: center;
+    }
+  </style>
+
+  <!-- Base Background -->
+  <rect width="1000" height="250" rx="16" fill="url(#pipeBg)" stroke="#1e293b" stroke-width="1.2" />
+
+  <!-- Top Title Tag -->
+  <g transform="translate(30, 22)">
+    <rect width="250" height="26" rx="13" fill="#0f172a" stroke="#0284c7" stroke-width="1" />
+    <circle class="node-pulse" cx="14" cy="13" r="4" fill="#38bdf8" />
+    <text x="28" y="17" class="font-pipe" font-size="10.5" font-weight="700" fill="#bae6fd" letter-spacing="1">CLM SENTINEL DETECTION PIPELINE</text>
+  </g>
+
+  <!-- Connecting Bus Lines -->
+  <line x1="170" y1="135" x2="380" y2="135" stroke="#1e293b" stroke-width="3" />
+  <line class="energy-line-cyan" x1="170" y1="135" x2="380" y2="135" stroke="#38bdf8" stroke-width="2.5" />
+
+  <line x1="400" y1="135" x2="620" y2="135" stroke="#1e293b" stroke-width="3" />
+  <line class="energy-line-emerald" x1="400" y1="135" x2="620" y2="135" stroke="#10b981" stroke-width="2.5" />
+
+  <line x1="640" y1="135" x2="840" y2="135" stroke="#1e293b" stroke-width="3" />
+  <line class="energy-line-alert" x1="640" y1="135" x2="840" y2="135" stroke="#ef4444" stroke-width="2.5" />
+
+  <!-- ================= NODE 1: OS / Hardware ================= -->
+  <g transform="translate(40, 75)">
+    <rect width="195" height="120" rx="12" fill="#0b1324" stroke="#1e3a5f" stroke-width="1.2" />
+    <circle cx="28" cy="28" r="14" fill="#0c4a6e" />
+    <text x="22" y="32" class="font-pipe" font-size="13" fill="#38bdf8">💻</text>
+    <text x="50" y="24" class="font-pipe" font-size="12" font-weight="700" fill="#f8fafc">1. HARDWARE &amp; OS</text>
+    <text x="50" y="38" class="mono-pipe" font-size="9.5" fill="#38bdf8">Physical Devices</text>
+    <line x1="14" y1="52" x2="181" y2="52" stroke="#1e293b" />
+    <text x="14" y="72" class="font-pipe" font-size="10.5" fill="#94a3b8">• Integrated/USB Webcams</text>
+    <text x="14" y="88" class="font-pipe" font-size="10.5" fill="#94a3b8">• Realtek Audio / Mics</text>
+    <text x="14" y="104" class="font-pipe" font-size="10.5" fill="#38bdf8">• Laptop Fn-Key Kill Switch</text>
+  </g>
+
+  <!-- ================= NODE 2: Windows ConsentStore ================= -->
+  <g transform="translate(280, 75)">
+    <rect width="205" height="120" rx="12" fill="#0b1324" stroke="#0284c7" stroke-width="1.4" />
+    <circle cx="28" cy="28" r="14" fill="#075985" />
+    <text x="22" y="32" class="font-pipe" font-size="13" fill="#bae6fd">🔑</text>
+    <text x="50" y="24" class="font-pipe" font-size="12" font-weight="700" fill="#bae6fd">2. REGISTRY HOOKS</text>
+    <text x="50" y="38" class="mono-pipe" font-size="9.5" fill="#38bdf8">ConsentStore Tree</text>
+    <line x1="14" y1="52" x2="191" y2="52" stroke="#1e293b" />
+    <text x="14" y="72" class="font-pipe" font-size="10" fill="#94a3b8">• HKCU\..\ConsentStore\webcam</text>
+    <text x="14" y="88" class="font-pipe" font-size="10" fill="#94a3b8">• \microphone &amp; \location</text>
+    <text x="14" y="104" class="font-pipe" font-size="10" fill="#38bdf8">• NonPackaged Win32 Subkeys</text>
+  </g>
+
+  <!-- ================= NODE 3: Sentinel Engine ================= -->
+  <g transform="translate(530, 75)">
+    <rect width="205" height="120" rx="12" fill="#0b1324" stroke="#10b981" stroke-width="1.4" />
+    <circle cx="28" cy="28" r="14" fill="#064e3b" />
+    <text x="21" y="32" class="font-pipe" font-size="13" fill="#34d399">⚡</text>
+    <text x="50" y="24" class="font-pipe" font-size="12" font-weight="700" fill="#34d399">3. SENTINEL ENGINE</text>
+    <text x="50" y="38" class="mono-pipe" font-size="9.5" fill="#34d399">sensor.py (Python)</text>
+    <line x1="14" y1="52" x2="191" y2="52" stroke="#1e293b" />
+    <text x="14" y="72" class="font-pipe" font-size="10" fill="#94a3b8">• LastUsedTime Delta Logic</text>
+    <text x="14" y="88" class="font-pipe" font-size="10" fill="#94a3b8">• Get-PnpDevice Threading</text>
+    <text x="14" y="104" class="font-pipe" font-size="10" fill="#a7f3d0">• 0% CPU &amp; 0ms Cloud Sync</text>
+  </g>
+
+  <!-- ================= NODE 4: Floating HUD ================= -->
+  <g transform="translate(775, 75)">
+    <rect width="185" height="120" rx="12" fill="#0b1324" stroke="#ef4444" stroke-width="1.4" />
+    <circle cx="28" cy="28" r="14" fill="#7f1d1d" />
+    <text x="21" y="32" class="font-pipe" font-size="13" fill="#f87171">🛡️</text>
+    <text x="50" y="24" class="font-pipe" font-size="12" font-weight="700" fill="#f87171">4. DESKTOP HUD</text>
+    <text x="50" y="38" class="mono-pipe" font-size="9.5" fill="#f87171">Always-on-Top Pill</text>
+    <line x1="14" y1="52" x2="171" y2="52" stroke="#1e293b" />
+    <text x="14" y="72" class="font-pipe" font-size="10.5" fill="#94a3b8">• SetWindowPos HWND</text>
+    <text x="14" y="88" class="font-pipe" font-size="10.5" fill="#94a3b8">• Red/Yellow/Green LEDs</text>
+    <text x="14" y="104" class="font-pipe" font-size="10.5" fill="#fca5a5">• Draggable Coordinates</text>
+  </g>
+</svg>
